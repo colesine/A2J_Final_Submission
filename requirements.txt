@@ -1,0 +1,32 @@
+# Web Scraping
+selenium==4.15.2
+beautifulsoup4==4.12.2
+webdriver-manager==4.0.1
+requests==2.31.0
+
+# Data Processing
+openpyxl>=3.1.2
+numpy>=1.24.3  # Using flexible version to avoid build issues
+pandas>=2.2.3 
+
+# API Integration
+google-generativeai>=0.3.2
+google-genai>=1.9.0
+openai>=1.12.0
+tiktoken>=0.5.2
+
+# Google Sheets Integration
+google-auth-oauthlib>=1.1.0
+google-api-python-client>=2.108.0
+google-auth>=2.23.4
+
+# Environment Variables
+python-dotenv>=1.0.0
+
+# Utilities
+urllib3>=1.26.18  # Using 1.26.x for compatibility with older libraries
+certifi>=2023.11.17
+
+# Testing (optional for production)
+pytest>=7.4.3
+pytest-cov>=4.1.0
