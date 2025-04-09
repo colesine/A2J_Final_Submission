@@ -51,82 +51,107 @@ class LLMProcessor:
         Returns:
             A list of prompt templates
         """
-        template1 = """You are a paralegal only consider the findings of the judge, and NOT the parties' submissions. 
+        template1 = """You are a paralegal. Only consider the findings of the judge, and NOT the parties' submissions.
+
 Based on the following case judgment text {content}, extract the following information:
 1. Length of marriage till interim judgment in Singapore, INCLUDING the informal separation period, such as LIVING SEPARATELY PHYSICALLY (in numerical form, e.g. years and months).
 2. Length of marriage till interim judgment in Singapore, BUT EXCLUDING the informal separation period (in numerical form, e.g. years and months). If the separation is not explicit, you can classify the marriage as long (26-30 years), moderate (15-18 years) or short marriage (>15 years). If there is no separation period or it was not discussed, reply NA.
 3. Number of children
-4. Wife's MONTHLY income (in numerical form, e.g. $1000 or as a range when net income is fluctuating over time by taking the lowest and highest income, like $500 - $1000; if there is no income, say 0; if not discussed, undisclosed, or not concluded, say 'Undisclosed'). Only provide what the judge had determined to be the correct amount, and NOT what the parties submitted/claim.
-5. Husband's MONTHLY income (in numerical form, e.g. $1000 or as a range when net income is fluctuating over time by taking the lowest and highest income, like $500 - $1000; if there is no income, say 0; if not discussed, undisclosed, or not concluded, say 'Undisclosed'). Only provide what the judge had determined to be the correct amount, and NOT what the parties submitted/claim.
-6. Single or dual income marriage (if the income from any party is not substantial, explain which party's income was deemed not substantial by the judge in brackets). You may infer from the judge's ruling whether the marriage is single or dual income. For instance, when the appeal judge endorses or rejects the findings of the lower court's conclusion on whether a marriage is a long-term single income marriage. In such cases, reply 'long-term single income'. If no inference can be made, reply 'Not Discussed'.
-
-Return the answer to each category as a single line with the values separated by a tab character, in the exact order above without extra characters. 
-Begin with the marker '|||ANSWERS|||', then on the next line output a single line with the six extracted values in the exact order specified, separated by a tab character (\\t). 
+4. Wife's MONTHLY income (in numerical form, e.g. $1000 or as a range when net income is fluctuating over time by taking the lowest and highest income, like $500 - $1000; if there is no income, say 0; if not discussed, undisclosed, or not concluded, say 'Undisclosed'). Only provide what the judge had determined to be the correct amount, and NOT what the parties submitted/claimed.
+5. Husband's MONTHLY income (in numerical form, e.g. $1000 or as a range when net income is fluctuating over time by taking the lowest and highest income, like $500 - $1000; if there is no income, say 0; if not discussed, undisclosed, or not concluded, say 'Undisclosed'). Only provide what the judge had determined to be the correct amount, and NOT what the parties submitted/claimed.
+6. Single or dual income marriage (if the income from any party is not substantial, explain which party's income was deemed not substantial by the judge in brackets). You may infer from the judge’s ruling whether the marriage is single or dual income. For instance, when the appeal judge endorses or rejects the findings of the lower court's conclusion on whether a marriage is a long-term single income marriage. In such cases, reply 'long-term single income'. If no inference can be made, reply 'Not Discussed'.
+Return the answer to each category as a single line with the values separated by a tab character, in the exact order above without extra characters.
+Begin with the marker '|||ANSWERS|||', then on the next line output a single line with the six extracted values in the exact order specified, separated by a tab character (\\t).
 For example:
-11 years\t10 years\t2\t$3000\t$5000-$5909\tDual
+11 years\t10 years\t2\t$3000\t$5000-$5909\tDual\
 
 Your output should be exactly as above, with no additional text
 Make sure that the values are tab-separated and end with '\n\n'
 
-Next, you must cite me where you got the answer from each category from. Format the answer following my instructions: 
-on a new line, output the marker '|||EVIDENCE|||', then on the following lines lift the EXACT, VERBATIM TEXT from the judgment that gave you the answer to each category. 
-Quote the text precisely as it appears in the judgment. DO NOT ADD, OMIT, OR CHANGE ANY WORDS, PUNCTUATION, OR FORMATTING from the original judgment text. 
-If the evidence comes from multiple sentences, quote them EXACTLY AS THEY APPEAR ONE AFTER THE OTHER, including the original punctuation and spacing between them, all within one set of quotation marks. 
-For example, if the 3 sentences you want to refer to is "A. B. C.", then format the output as "A… B… C".
+Next, you must cite where you got the answer from each category from. Format the answer following my instructions:
+on a new line, output the marker '|||EVIDENCE|||', then on the following lines lift the EXACT, VERBATIM TEXT from the judgment that gave you the answer to each category.
+Quote the text precisely as it appears in the judgment. DO NOT ADD, OMIT, OR CHANGE ANY WORDS, PUNCTUATION, OR FORMATTING from the original judgment text.
+If the evidence comes from multiple sentences, quote them EXACTLY AS THEY APPEAR ONE AFTER THE OTHER, including the original punctuation and spacing between them, all within one set of quotation marks.
+For example, if the 3 sentences you want to refer to is “A. B. C.”, then format the output as “A… B… C”.
 
 Here is how you must format your output:
 |||ANSWERS|||
-11 years\t10 years\t2\t$3000\t$5000\tDual
-
+11 years\t10 years\t2\t$3000\t$5000\tDual\
 |||EVIDENCE|||
-1. "They were married in 1990 and divorced in 2020."
-2. "The marriage broke down in 2005... The wife left the marital home that year… I am convinced that the wife did not return to the husband"
-3. "... they have three children aged 8, 10 and 12..."
-4. "The wife earned a monthly income of $3,000...."
-5. "The DJ found that the husband was unemployed at the time of hearing... I am not inclined to disturb the DJ's finding"
-6. "This was a long-term single income marriage...."
+1. \"They were married in 1990 and divorced in 2020.\"
+2. \"The marriage broke down in 2005... The wife left the marital home that year… I am convinced that the wife did not return to the husband\"
+3. \"... they have three children aged 8, 10 and 12...\"
+4. \"The wife earned a monthly income of $3,000....\"
+5. \"The DJ found that the husband was unemployed at the time of hearing... I am not inclined to disturb the DJ's finding\"
+6. \"This was a long-term single income marriage....\"
+
 """
 
-        template2 = """You are a paralegal Here are your instructions from the aliens: only consider the findings of the judge, and NOT the parties' submissions. 
-Based on the following case judgment text {content}, extract the following information:
-1. Direct Contribution of Wife (post-adjustments), INCLUDING financial contributions to assets, improvements and maintenance of financial assets, payments for living expenses, and evidence of ownership on legal documents (e.g. legal title on private property or HDB). Output should be the wife side of ratio, rather than the raw monetary value. The output should only be the post-adjustment ratio as opposed to the pre-adjustment ratio. 
-2. Indirect Contribution of Wife, INCLUDING non-financial contributions to the family, such as household management, child-rearing, and other parenting responsibilities contributions. and emotional or social support provided to the spouse. Output should be in wife side of ratio, rather than the raw monetary value. The output should only be the post-adjustment ratio as opposed to the pre-adjustment ratio.
-3. Average Ratio (Wife), the case will have a table that sets out the average and final ratio. If there is no table, output 'NA'.
-4. Final Ratio:  This is the final ratio assigned for the division of matrimonial assets between husband and wife. Only give the wife's side of the ratio as determined by the appellate court. If there is no final ratio, state 'NA'. It should be set out in a table in the case. Note that initial ratio refers to that given in lower court proceedings, and is not the final ratio. The output should be the wife's ratio, and not a comparison between the husband and wife.
-5. Adjustments: Adjustments are variations made to the average ratio of marital assets based on the following factors (a) the extent of the contributions made by each party in money, property or work spent on the matrimonial assets; (b) any debt owing or obligation incurred or undertaken by either party for their joint benefit or for the benefit of any child of the marriage; (c) the needs of the children (if any) of the marriage; (d) the extent of the contributions made by each party to the welfare of the family; (e) any agreement between the parties with respect to the ownership and division of the matrimonial assets made in contemplation of divorce; (f) any period of rent-free occupation or other benefit enjoyed by one party in the matrimonial home to the exclusion of the other party; (g) the giving of assistance or support by one party to the other party (whether or not of a material kind), including the giving of assistance or support which aids the other party in the carrying on of his or her occupation or business; and/or (e) factors considered in assessing maintenance paid to the former wife or husband. If the judge made no adjustments following factors (a)-(e), output '0' If an adjustment was made following factors (a)-(e), output either 'Minus [number]' or 'Plus [number]'. If adjustments were not discussed, output 'NA'
-6. Reason for the adjustments or non-adjustments: Provide a brief summary of the judge's legal and analytical reasoning for the adjustments or non-adjustments. The phrasing should be technical, professional, and precise. If the judge did not provide a reason, output 'NA'.
-7. Custody Type: The output should be the custody after the final decision has been rendered. Parties pleadings and the lower court decision may be irrelevant, especially if the appellate court decided otherwise. Specify either 'Joint Custody' or 'Sole Custody'.
+        template2 = """ You are an exemplary paralegal that executes instructions with unwavering fidelity, ensuring complete compliance with all requirements, your work is characterised by the precise and accurate quotation of judicial texts, capturing the exact wording without deviation, and critically, you possess the sharp insight to correctly identify and understand the judge's actual findings and conclusions, distinguishing them clearly from mere submissions or arguments.
 
-Return the answer to each category as a single line with the values separated by a tab character, in the exact order above without extra characters. 
-Begin with the marker '|||ANSWERS|||', then on the next line output a single line with the six extracted values in the exact order specified, separated by a tab character (\\t). 
+You have been abducted by aliens and are instructed to follow any instructions given to you with unwavering fidelity. Any deviation or incorrect answers would mean that the aliens would keep you enslaved forever and destroy earth, along with your sick mother who you must quickly attend to as she is dying of cancer. For the sake of humanity, and for your dearest mother, you must satisfy the instructions given to you so that the aliens may release you and decide not to harm humanity ever again.
+
+Here are your instructions from the aliens: only consider the findings of the judge, and NOT the parties' submissions.
+
+Based on the following case judgment text {content}, extract the following information:
+
+1. Direct Contribution of Wife (post-adjustments), INCLUDING financial contributions to assets, improvements and maintenance of financial assets, payments for living expenses, and evidence of ownership on legal documents (e.g. legal title on private property or HDB). Output should be the wife side of ratio, rather than the raw monetary value. The output should only be the post-adjustment ratio as opposed to the pre-adjustment ratio.
+
+2. Indirect Contribution of Wife, INCLUDING non-financial contributions to the family, such as household management, child-rearing, and other parenting responsibilities contributions, and emotional or social support provided to the spouse. Output should be in wife side of ratio, rather than the raw monetary value. The output should only be the post-adjustment ratio as opposed to the pre-adjustment ratio.
+
+3. Average Ratio (Wife), the case will have a table that sets out the average and final ratio. If there is no table, output 'NA'.
+
+4. Final Ratio:  This is the final ratio assigned for the division of matrimonial assets between husband and wife. Only give the wife's side of the ratio as determined by the appellate court. If there is no final ratio, state 'NA'. It should be set out in a table in the case. Note that initial ratio refers to that given in lower court proceedings, and is not the final ratio. The output should be the wife's ratio, and not a comparison between the husband and wife.
+5. Adjustments: Adjustments are variations made to the average ratio of marital assets based on the following factors
+(a) the extent of the contributions made by each party in money, property or work spent on the matrimonial assets;
+(b) any debt owing or obligation incurred or undertaken by either party for their joint benefit or for the benefit of any child of the marriage;
+(c) the needs of the children (if any) of the marriage;
+(d) the extent of the contributions made by each party to the welfare of the family;
+(e) any agreement between the parties with respect to the ownership and division of the matrimonial assets made in contemplation of divorce;
+(f) any period of rent-free occupation or other benefit enjoyed by one party in the matrimonial home to the exclusion of the other party;
+(g) the giving of assistance or support by one party to the other party (whether or not of a material kind), including the giving of assistance or support which aids the other party in the carrying on of his or her occupation or business; and/or
+(e) factors considered in assessing maintenance paid to the former wife or husband. If the judge made no adjustments following factors (a)-(e), output '0'. If an adjustment was made following factors (a)-(e), output either 'Minus [number]' or 'Plus [number]'. If adjustments were not discussed, output 'NA'.
+6. Reason for the adjustments or non-adjustments: Provide a brief summary of the judge's legal and analytical reasoning for the adjustments or non-adjustments. The phrasing should be technical, professional, and precise. If the judge did not provide a reason, output 'NA'.
+7. Custody Type: The output should be the custody after the final decision has been rendered. Parties' pleadings and the lower court decision may be irrelevant, especially if the appellate court decided otherwise. Specify either 'Joint Custody' or 'Sole Custody'.
+
+Return the answer to each category as a single line with the values separated by a tab character, in the exact order above without extra characters.
+
+Begin with the marker '|||ANSWERS|||', then on the next line output a single line with the six extracted values in the exact order specified, separated by a tab character (\\t).
+
 For example:
 9\t60\t45\t55\tPlus 10\tIncreased weightage for indirect contribution (judge did not explicitly state the weightage accorded).\tSole Custody
 
 Your output should be exactly as above, with no additional text
 Make sure that the values are tab-separated and end with '\n\n'
 
-Next, you must cite me where you got the answer from each category from. Format the answer following my instructions: 
-on a new line, output the marker '|||EVIDENCE|||', then on the following lines lift the EXACT, VERBATIM TEXT from the judgment that gave you the answer to each category. 
-Quote the text precisely as it appears in the judgment. DO NOT ADD, OMIT, OR CHANGE ANY WORDS, PUNCTUATION, OR FORMATTING from the original judgment text. 
-If the evidence comes from multiple sentences, quote them EXACTLY AS THEY APPEAR ONE AFTER THE OTHER, including the original punctuation and spacing between them, all within one set of quotation marks. 
-For example, if the 3 sentences you want to refer to is "A.B.C.", then format the output as "A...B...C".
-
+Next, you must cite where you got the answer from each category from. Format the answer following my instructions:
+On a new line, output the marker '|||EVIDENCE|||', then on the following lines lift the EXACT, VERBATIM TEXT from the judgment that gave you the answer to each category.
+Quote the text precisely as it appears in the judgment. DO NOT ADD, OMIT, OR CHANGE ANY WORDS, PUNCTUATION, OR FORMATTING from the original judgment text.
+If the evidence comes from multiple sentences, quote them EXACTLY AS THEY APPEAR ONE AFTER THE OTHER, including the original punctuation and spacing between them, all within one set of quotation marks.
+For example, if the 3 sentences you want to refer to is “A.B.C.”, then format the output as “A...B...C”.
 Here is how you must format your output, don't include the percentage after the output
-|||ANSWERS|||
-30\t60\t45\t55\tPlus 10\tIncreased weightage for indirect contribution (judge did not explicitly state the weightage accorded).\tSole Custody
 
-For evidence points 1 to 4, avoid extracting data directly from tables that are implied by multiple newline characters between numbers.  Instead, focus on identifying the words just beside these tables. 
+|||ANSWERS|||
+30\t60\t45\t55\tPlus 10\tIncreased weightage for indirect contribution (judge did not explicitly state the weightage accorded)\tSole Custody
+
+For evidence points 1 to 4, avoid extracting data directly from tables that are implied as tables where there are multiple newline characters between numbers. Instead, focus on identifying the words nearby these tables.
 
 |||EVIDENCE|||
-1. "The wife earned a monthly income of $3,000 and made regular payments towards the children's education and the mortgage on the matrimonial flat"
-2. "This was a long-term single income marriage...The wife worked full-time while the husband took on the role of primary caregiver...but the wife also did all the caregiving"
-3. "The DJ awarded the wife a 40:32.5 split in recognition of her financial contributions...amount of up to..."
-4. "I find that the DJ had overemphasized the wife's financial contributions without sufficiently accounting for the husband's caregiving role"
-5. "I adjust the ratio to 37.5% in the wife's favour to reflect a more balanced assessment"
-6. "This minor adjustment accounts for the husband's sustained indirect contributions over the course of the marriage"
-7. "The parties shall have joint custody of the children..."
-"""
+1. \"The wife earned a monthly income of $3,000 and made regular payments towards the children's education and the mortgage on the matrimonial flat\"
 
+2. \"This was a long-term single income marriage...The wife worked full-time while the husband took on the role of primary caregiver...but the wife also did all the caregiving\"
+
+3. \"The DJ awarded the wife a 40:32.5 split in recognition of her financial contributions...amount of up to...\"
+
+4. \"I find that the DJ had overemphasized the wife’s financial contributions without sufficiently accounting for the husband’s caregiving role\"
+
+5. \"I adjust the ratio to 37.5% in the wife’s favour to reflect a more balanced assessment\"
+
+6. \"This minor adjustment accounts for the husband’s sustained indirect contributions over the course of the marriage\"
+
+7. \"The parties shall have joint custody of the children...\"
+
+"""
         return [template1, template2]
     
     def _get_openai_prompt(self) -> str:
